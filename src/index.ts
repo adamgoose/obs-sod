@@ -11,6 +11,17 @@ NodeRuntime.runMain(
     const streamConfig = yield* StreamConfig;
     yield* Effect.logDebug(streamConfig);
 
+    // yield* Effect.log(
+    //   yield* obs.call("GetSceneItemList", {
+    //     sceneUuid: obs.sceneUuid,
+    //   }),
+    //   yield* obs.call("GetInputSettings", {
+    //     // sceneUuid: obs.sceneUuid,
+    //     // sceneItemId: 4,
+    //     inputName: "Media Source",
+    //   }),
+    // );
+
     // Configure Stream Settings
     yield* designer.configureStreamService();
     yield* Effect.log("Set Stream Service Settings");
@@ -27,16 +38,11 @@ NodeRuntime.runMain(
       yield* Effect.log("Configured text layer: " + name);
     }
 
+    // Activate Splash
     yield* obs.call("SetCurrentProgramScene", {
       sceneUuid: obs.sceneUuid,
     });
     yield* Effect.log("Activated Splash Scene");
-    // yield* Effect.sleep(10 * 1000);
-
-    yield* designer.playVideo(
-      "bunny",
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-    );
   }).pipe(
     Effect.provide(StreamDesignerLive),
     Effect.provide(OBSLive),

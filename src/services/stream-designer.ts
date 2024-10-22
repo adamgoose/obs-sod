@@ -19,7 +19,10 @@ export class StreamDesigner extends Context.Tag("StreamDesigner")<
     ) => Effect.Effect<void, OBSError | string>;
     playVideo: (
       inputName: string,
-      url: string,
+      options: {
+        url: string;
+        blocking?: boolean;
+      },
     ) => Effect.Effect<void, OBSError>;
   }
 >() {}
@@ -75,10 +78,7 @@ export const StreamDesignerLive = Layer.effect(
               break;
           }
         }),
-      setText: (
-        inputName: string,
-        textConfig: Schema.Schema.Type<typeof StreamConfigTextSchema>,
-      ) =>
+      setText: (inputName, textConfig) =>
         Effect.gen(function* () {
           yield* obs
             .call("RemoveInput", { inputName })
@@ -100,29 +100,33 @@ export const StreamDesignerLive = Layer.effect(
             sceneItemTransform: textConfig.transform,
           });
         }),
-      playVideo: (inputName: string, url: string) =>
+      playVideo: (sceneName, options) =>
         Effect.gen(function* () {
           yield* obs
-            .call("RemoveInput", { inputName })
+            .call("RemoveScene", { sceneName })
             .pipe(
               Effect.catchAll(Effect.succeed),
               Effect.andThen(Effect.sleep(500)),
             );
 
+          const scene = yield* obs.call("CreateScene", {
+            sceneName,
+          });
+
           const input = yield* obs.call("CreateInput", {
-            sceneUuid: obs.sceneUuid,
-            inputName: inputName,
+            sceneUuid: scene.sceneUuid,
+            inputName: sceneName + "_video",
             inputKind: "ffmpeg_source",
             inputSettings: {
-              input: url,
+              input: options.url,
               input_format: "mp4",
               is_local_file: false,
             },
-            sceneItemEnabled: false,
+            sceneItemEnabled: true,
           });
 
           yield* obs.call("SetSceneItemTransform", {
-            sceneUuid: obs.sceneUuid,
+            sceneUuid: scene.sceneUuid,
             sceneItemId: input.sceneItemId,
             sceneItemTransform: {
               alignment: 0,
@@ -134,11 +138,36 @@ export const StreamDesignerLive = Layer.effect(
             },
           });
 
-          yield* obs.call("SetSceneItemEnabled", {
-            sceneUuid: obs.sceneUuid,
-            sceneItemId: input.sceneItemId,
-            sceneItemEnabled: true,
+          yield* Effect.log("Playing video: " + sceneName);
+          yield* obs.call("SetCurrentProgramScene", {
+            sceneName,
           });
+
+          const waitForEnd = Effect.gen(function* () {
+            yield* Effect.async((resume) => {
+              obs.client.on("MediaInputPlaybackEnded", ({ inputUuid }) => {
+                console.log("ended:", inputUuid);
+                if (inputUuid == input.inputUuid) {
+                  resume(Effect.succeed(sceneName));
+                }
+              });
+            });
+
+            yield* obs.call("SetCurrentProgramScene", {
+              sceneUuid: obs.sceneUuid,
+            });
+
+            yield* obs.call("RemoveScene", {
+              sceneName,
+            });
+            yield* Effect.log("Finished video: " + sceneName);
+          });
+
+          if (options.blocking) {
+            yield* waitForEnd;
+          } else {
+            yield* Effect.fork(waitForEnd);
+          }
         }),
     };
   }),

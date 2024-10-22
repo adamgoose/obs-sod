@@ -1,6 +1,10 @@
 import { Context, Effect, Layer } from "effect";
 import { OBS, OBSError } from "./obs-websocket-js";
-import { StreamConfig, StreamConfigTextSchema } from "./config";
+import {
+  StreamConfig,
+  StreamConfigSceneItemTransformSchema,
+  StreamConfigTextSchema,
+} from "./config";
 import _ from "lodash";
 import type { Schema } from "@effect/schema";
 
@@ -13,6 +17,10 @@ export class StreamDesigner extends Context.Tag("StreamDesigner")<
       inputName: string,
       textConfig: Schema.Schema.Type<typeof StreamConfigTextSchema>,
     ) => Effect.Effect<void, OBSError | string>;
+    playVideo: (
+      inputName: string,
+      url: string,
+    ) => Effect.Effect<void, OBSError>;
   }
 >() {}
 
@@ -90,6 +98,46 @@ export const StreamDesignerLive = Layer.effect(
             sceneUuid: obs.sceneUuid,
             sceneItemId: input.sceneItemId,
             sceneItemTransform: textConfig.transform,
+          });
+        }),
+      playVideo: (inputName: string, url: string) =>
+        Effect.gen(function* () {
+          yield* obs
+            .call("RemoveInput", { inputName })
+            .pipe(
+              Effect.catchAll(Effect.succeed),
+              Effect.andThen(Effect.sleep(500)),
+            );
+
+          const input = yield* obs.call("CreateInput", {
+            sceneUuid: obs.sceneUuid,
+            inputName: inputName,
+            inputKind: "ffmpeg_source",
+            inputSettings: {
+              input: url,
+              input_format: "mp4",
+              is_local_file: false,
+            },
+            sceneItemEnabled: false,
+          });
+
+          yield* obs.call("SetSceneItemTransform", {
+            sceneUuid: obs.sceneUuid,
+            sceneItemId: input.sceneItemId,
+            sceneItemTransform: {
+              alignment: 0,
+              boundsType: "OBS_BOUNDS_STRETCH",
+              positionX: 1920 / 2,
+              positionY: 1080 / 2,
+              boundsHeight: 1080,
+              boundsWidth: 1920,
+            },
+          });
+
+          yield* obs.call("SetSceneItemEnabled", {
+            sceneUuid: obs.sceneUuid,
+            sceneItemId: input.sceneItemId,
+            sceneItemEnabled: true,
           });
         }),
     };

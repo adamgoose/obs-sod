@@ -31,6 +31,12 @@ NodeRuntime.runMain(
       sceneUuid: obs.sceneUuid,
     });
     yield* Effect.log("Activated Splash Scene");
+    // yield* Effect.sleep(10 * 1000);
+
+    yield* designer.playVideo(
+      "bunny",
+      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    );
   }).pipe(
     Effect.provide(StreamDesignerLive),
     Effect.provide(OBSLive),

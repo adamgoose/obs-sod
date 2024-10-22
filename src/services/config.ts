@@ -60,6 +60,17 @@ export const StreamConfigTextSchema = Schema.Struct({
 });
 
 export const StreamConfigSchema = Schema.Struct({
+  obs: Schema.optionalWith(
+    Schema.Struct({
+      address: Schema.String,
+      password: Schema.optional(Schema.String),
+    }),
+    {
+      default: () => ({
+        address: "ws://127.0.0.1:4455",
+      }),
+    },
+  ),
   rtmp: Schema.Struct({
     server: Schema.String,
     key: Schema.optionalWith(Schema.String, { default: () => "" }),

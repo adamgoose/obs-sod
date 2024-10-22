@@ -3,7 +3,8 @@
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/lodash": "^4.17.12"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
@@ -11,7 +12,10 @@
   "dependencies": {
     "@effect/platform": "^0.68.6",
     "@effect/platform-node": "^0.63.6",
+    "@effect/schema": "^0.75.5",
     "effect": "^3.9.2",
-    "obs-websocket-js": "^5.0.6"
+    "lodash": "^4.17.21",
+    "obs-websocket-js": "^5.0.6",
+    "yaml": "^2.6.0"
   }
 }

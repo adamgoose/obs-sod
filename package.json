@@ -2,6 +2,9 @@
   "name": "obs-sod",
   "module": "index.ts",
   "type": "module",
+  "scripts": {
+    "dev": "tsx --watch ./src/index.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/lodash": "^4.17.12"
@@ -16,6 +19,7 @@
     "effect": "^3.9.2",
     "lodash": "^4.17.21",
     "obs-websocket-js": "^5.0.6",
+    "tsx": "^4.19.1",
     "yaml": "^2.6.0"
   }
 }

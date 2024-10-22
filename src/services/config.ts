@@ -77,9 +77,6 @@ export const StreamConfigSchema = Schema.Struct({
     ),
   ),
   text: Schema.optional(
-    Schema.Struct({
-      title: StreamConfigTextSchema,
-      subtitle: Schema.optional(StreamConfigTextSchema),
-    }),
+    Schema.Record({ key: Schema.String, value: StreamConfigTextSchema }),
   ),
 });

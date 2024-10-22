@@ -22,13 +22,15 @@ NodeRuntime.runMain(
     }
 
     // Prepare Text
-    if (streamConfig.text !== undefined) {
-      yield* designer.setText("Title", streamConfig.text.title);
-      if (streamConfig.text.subtitle !== undefined) {
-        yield* designer.setText("Subtitle", streamConfig.text.subtitle);
-      }
-      yield* Effect.log("Configured Text");
+    for (let name in streamConfig.text) {
+      yield* designer.setText(name, streamConfig.text[name]);
+      yield* Effect.log("Configured text layer: " + name);
     }
+
+    yield* obs.call("SetCurrentProgramScene", {
+      sceneUuid: obs.sceneUuid,
+    });
+    yield* Effect.log("Activated Splash Scene");
   }).pipe(
     Effect.provide(StreamDesignerLive),
     Effect.provide(OBSLive),

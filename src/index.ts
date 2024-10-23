@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Logger, LogLevel } from "effect";
 import { StreamConfig, StreamConfigLive } from "./services/config";
 import { NodeContext, NodeRuntime } from "@effect/platform-node";
 import { StreamDesigner, StreamDesignerLive } from "./services/stream-designer";
@@ -9,7 +9,7 @@ NodeRuntime.runMain(
     const obs = yield* OBS;
     const designer = yield* StreamDesigner;
     const streamConfig = yield* StreamConfig;
-    yield* Effect.log(streamConfig);
+    yield* Effect.logDebug(streamConfig);
 
     // yield* Effect.log(
     //   yield* obs.call("GetSceneItemList", {
@@ -65,6 +65,10 @@ NodeRuntime.runMain(
           for (let name in step.text) {
             yield* designer.updateText(name, step.text[name]);
           }
+          break;
+        case "start_countdown":
+          yield* designer.startCountdown(step);
+          break;
       }
 
       yield* Effect.log("Finishing [" + step.type + "] step");
@@ -78,5 +82,6 @@ NodeRuntime.runMain(
     Effect.provide(StreamConfigLive),
     Effect.provide(NodeContext.layer),
     Effect.catchTag("OBSError", Effect.logError),
+    Logger.withMinimumLogLevel(LogLevel.Debug),
   ),
 );

@@ -50,8 +50,8 @@ export const StreamConfigSceneItemTransformSchema = Schema.Struct({
 export const StreamConfigTextStyleSchema = Schema.Struct({
   text: Schema.String,
   drop_shadow: Schema.optionalWith(Schema.Boolean, { default: () => false }),
-  color1: Schema.optionalWith(Schema.Int, { default: () => 0 }),
-  color2: Schema.optionalWith(Schema.Int, { default: () => 0 }),
+  color1: Schema.optionalWith(Schema.Int, { default: () => 0xff000000 }),
+  color2: Schema.optionalWith(Schema.Int, { default: () => 0xff000000 }),
 });
 
 export const StreamConfigTextSchema = Schema.Struct({
@@ -74,10 +74,18 @@ export const StreamConfigActionSetTextSchema = Schema.Struct({
   text: Schema.Record({ key: Schema.String, value: StreamConfigTextSchema }),
 });
 
+export const StreamConfigActionStartCountdownSchema = Schema.Struct({
+  type: Schema.Literal("start_countdown"),
+  until: Schema.Date,
+  style: StreamConfigTextStyleSchema.omit("text"),
+  transform: StreamConfigSceneItemTransformSchema,
+});
+
 export const StreamConfigActionSchema = Schema.Union(
   StreamConfigActionPlayVideoSchema,
   StreamConfigActionWaitUntilSchema,
   StreamConfigActionSetTextSchema,
+  StreamConfigActionStartCountdownSchema,
 );
 
 export const StreamConfigSchema = Schema.Struct({

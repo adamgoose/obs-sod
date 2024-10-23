@@ -55,7 +55,7 @@ export const OBSLive = Layer.scoped(
         requestType: Type,
         requestData?: OBSRequestTypes[Type],
       ) =>
-        Effect.log("[obs] - " + requestType).pipe(
+        Effect.logDebug("[obs] - " + requestType).pipe(
           Effect.andThen(
             Effect.tryPromise({
               try: () => obs.call(requestType, requestData),

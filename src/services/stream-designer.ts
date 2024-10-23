@@ -1,12 +1,14 @@
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Schedule } from "effect";
 import { OBS, OBSError } from "./obs-websocket-js";
 import {
   StreamConfig,
-  StreamConfigSceneItemTransformSchema,
+  StreamConfigActionStartCountdownSchema,
+  StreamConfigSceneItemTransformAlignment,
   StreamConfigTextSchema,
 } from "./config";
 import _ from "lodash";
 import type { Schema } from "@effect/schema";
+import moment from "moment";
 
 export class StreamDesigner extends Context.Tag("StreamDesigner")<
   StreamDesigner,
@@ -27,6 +29,11 @@ export class StreamDesigner extends Context.Tag("StreamDesigner")<
         url: string;
         blocking?: boolean;
       },
+    ) => Effect.Effect<void, OBSError>;
+    startCountdown: (
+      countdownConfig: Schema.Schema.Type<
+        typeof StreamConfigActionStartCountdownSchema
+      >,
     ) => Effect.Effect<void, OBSError>;
   }
 >() {}
@@ -191,6 +198,53 @@ export const StreamDesignerLive = Layer.effect(
           } else {
             yield* Effect.fork(waitForEnd);
           }
+        }),
+
+      startCountdown: ({ until, style, transform }) =>
+        Effect.gen(function* () {
+          const countdown = moment.duration(
+            until.getTime() - new Date().getTime(),
+          );
+
+          const input = yield* obs.call("CreateInput", {
+            sceneUuid: obs.sceneUuid,
+            inputName: _.uniqueId("countdown"),
+            inputKind: "text_ft2_source_v2",
+            inputSettings: {
+              ...style,
+              text: `${countdown.minutes().toString().padStart(2, "0")}:${countdown.seconds().toString().padStart(2, "0")}`,
+            },
+          });
+
+          yield* obs.call("SetSceneItemTransform", {
+            sceneUuid: obs.sceneUuid,
+            sceneItemId: input.sceneItemId,
+            sceneItemTransform: transform,
+          });
+
+          yield* Effect.fork(
+            Effect.schedule(
+              Effect.gen(function* () {
+                const countdown = yield* Effect.sync(() =>
+                  moment.duration(until.getTime() - new Date().getTime()),
+                );
+                yield* obs.call("SetInputSettings", {
+                  inputUuid: input.inputUuid,
+                  inputSettings: {
+                    text: `${countdown.minutes().toString().padStart(2, "0")}:${countdown.seconds().toString().padStart(2, "0")}`,
+                  },
+                });
+              }),
+              Schedule.addDelay(
+                Schedule.recurs(countdown.asSeconds() + 1),
+                () => "1 second",
+              ),
+            ).pipe(
+              Effect.andThen(
+                obs.call("RemoveInput", { inputUuid: input.inputUuid }),
+              ),
+            ),
+          );
         }),
     };
   }),

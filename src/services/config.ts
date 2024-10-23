@@ -59,6 +59,27 @@ export const StreamConfigTextSchema = Schema.Struct({
   transform: StreamConfigSceneItemTransformSchema,
 });
 
+export const StreamConfigActionPlayVideoSchema = Schema.Struct({
+  type: Schema.Literal("play_video"),
+  url: Schema.String,
+});
+
+export const StreamConfigActionWaitUntilSchema = Schema.Struct({
+  type: Schema.Literal("wait_until"),
+  until: Schema.Date,
+});
+
+export const StreamConfigActionSetTextSchema = Schema.Struct({
+  type: Schema.Literal("set_text"),
+  text: Schema.Record({ key: Schema.String, value: StreamConfigTextSchema }),
+});
+
+export const StreamConfigActionSchema = Schema.Union(
+  StreamConfigActionPlayVideoSchema,
+  StreamConfigActionWaitUntilSchema,
+  StreamConfigActionSetTextSchema,
+);
+
 export const StreamConfigSchema = Schema.Struct({
   obs: Schema.optionalWith(
     Schema.Struct({
@@ -90,4 +111,5 @@ export const StreamConfigSchema = Schema.Struct({
   text: Schema.optional(
     Schema.Record({ key: Schema.String, value: StreamConfigTextSchema }),
   ),
+  actions: Schema.Array(StreamConfigActionSchema),
 });

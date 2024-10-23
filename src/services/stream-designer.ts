@@ -17,6 +17,10 @@ export class StreamDesigner extends Context.Tag("StreamDesigner")<
       inputName: string,
       textConfig: Schema.Schema.Type<typeof StreamConfigTextSchema>,
     ) => Effect.Effect<void, OBSError | string>;
+    updateText: (
+      inputName: string,
+      textConfig: Schema.Schema.Type<typeof StreamConfigTextSchema>,
+    ) => Effect.Effect<void, OBSError | string>;
     playVideo: (
       inputName: string,
       options: {
@@ -81,7 +85,7 @@ export const StreamDesignerLive = Layer.effect(
       setText: (inputName, textConfig) =>
         Effect.gen(function* () {
           yield* obs
-            .call("RemoveInput", { inputName })
+            .call("RemoveInput", { inputName: inputName + "_text" })
             .pipe(
               Effect.catchAll(Effect.succeed),
               Effect.andThen(Effect.sleep(500)),
@@ -89,7 +93,7 @@ export const StreamDesignerLive = Layer.effect(
 
           const input = yield* obs.call("CreateInput", {
             sceneUuid: obs.sceneUuid,
-            inputName: inputName,
+            inputName: inputName + "_text",
             inputKind: "text_ft2_source_v2",
             inputSettings: textConfig.style,
           });
@@ -97,6 +101,24 @@ export const StreamDesignerLive = Layer.effect(
           yield* obs.call("SetSceneItemTransform", {
             sceneUuid: obs.sceneUuid,
             sceneItemId: input.sceneItemId,
+            sceneItemTransform: textConfig.transform,
+          });
+        }),
+      updateText: (inputName, textConfig) =>
+        Effect.gen(function* () {
+          const sceneItem = yield* obs.call("GetSceneItemId", {
+            sceneUuid: obs.sceneUuid,
+            sourceName: inputName + "_text",
+          });
+
+          yield* obs.call("SetInputSettings", {
+            inputName: inputName + "_text",
+            inputSettings: textConfig.style,
+          });
+
+          yield* obs.call("SetSceneItemTransform", {
+            sceneUuid: obs.sceneUuid,
+            sceneItemId: sceneItem.sceneItemId,
             sceneItemTransform: textConfig.transform,
           });
         }),
@@ -142,11 +164,11 @@ export const StreamDesignerLive = Layer.effect(
           yield* obs.call("SetCurrentProgramScene", {
             sceneName,
           });
+          yield* Effect.sleep(300);
 
           const waitForEnd = Effect.gen(function* () {
             yield* Effect.async((resume) => {
               obs.client.on("MediaInputPlaybackEnded", ({ inputUuid }) => {
-                console.log("ended:", inputUuid);
                 if (inputUuid == input.inputUuid) {
                   resume(Effect.succeed(sceneName));
                 }
@@ -156,6 +178,7 @@ export const StreamDesignerLive = Layer.effect(
             yield* obs.call("SetCurrentProgramScene", {
               sceneUuid: obs.sceneUuid,
             });
+            yield* Effect.sleep(300);
 
             yield* obs.call("RemoveScene", {
               sceneName,

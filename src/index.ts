@@ -9,7 +9,7 @@ NodeRuntime.runMain(
     const obs = yield* OBS;
     const designer = yield* StreamDesigner;
     const streamConfig = yield* StreamConfig;
-    yield* Effect.logDebug(streamConfig);
+    yield* Effect.log(streamConfig);
 
     // yield* Effect.log(
     //   yield* obs.call("GetSceneItemList", {
@@ -43,10 +43,40 @@ NodeRuntime.runMain(
       sceneUuid: obs.sceneUuid,
     });
     yield* Effect.log("Activated Splash Scene");
+
+    // yield* obs.call("StartStream");
+    // yield* Effect.log("Started Live Streaming")
+
+    // Do other stuff
+    for (let step of streamConfig.actions) {
+      yield* Effect.log("Starting [" + step.type + "] step");
+
+      switch (step.type) {
+        case "wait_until":
+          yield* Effect.sleep(step.until.getTime() - new Date().getTime());
+          break;
+        case "play_video":
+          yield* designer.playVideo("vid", {
+            url: step.url,
+            blocking: false,
+          });
+          break;
+        case "set_text":
+          for (let name in step.text) {
+            yield* designer.updateText(name, step.text[name]);
+          }
+      }
+
+      yield* Effect.log("Finishing [" + step.type + "] step");
+    }
+
+    // yield* obs.call("StopStream");
+    // yield* Effect.log("Finished Live Stream")
   }).pipe(
     Effect.provide(StreamDesignerLive),
     Effect.provide(OBSLive),
     Effect.provide(StreamConfigLive),
     Effect.provide(NodeContext.layer),
+    Effect.catchTag("OBSError", Effect.logError),
   ),
 );

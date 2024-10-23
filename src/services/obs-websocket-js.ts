@@ -55,10 +55,15 @@ export const OBSLive = Layer.scoped(
         requestType: Type,
         requestData?: OBSRequestTypes[Type],
       ) =>
-        Effect.tryPromise({
-          try: () => obs.call(requestType, requestData),
-          catch: (e) => new OBSError(e as OBSWebSocketError),
-        }),
+        Effect.log("[obs] - " + requestType).pipe(
+          Effect.andThen(
+            Effect.tryPromise({
+              try: () => obs.call(requestType, requestData),
+              catch: (e) =>
+                new OBSError(requestType, requestData, e as OBSWebSocketError),
+            }),
+          ),
+        ),
       on: (...args: Parameters<typeof obs.on>) =>
         Effect.sync(() => obs.on(...args)),
       off: (...args: Parameters<typeof obs.off>) =>
@@ -71,8 +76,19 @@ export const OBSLive = Layer.scoped(
 export class OBSError extends Schema.TaggedError<OBSError>()("OBSError", {
   code: Schema.Number,
   message: Schema.String,
+  action: Schema.String,
+  args: Schema.Any,
 }) {
-  constructor(readonly error: OBSWebSocketError) {
-    super({ code: error.code, message: error.message });
+  constructor(
+    readonly action: string,
+    readonly args: any,
+    readonly error: OBSWebSocketError,
+  ) {
+    super({
+      code: error.code,
+      message: error.message,
+      action,
+      args,
+    });
   }
 }
